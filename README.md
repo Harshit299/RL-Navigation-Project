@@ -11,7 +11,7 @@ The system leverages an **ONNX-exported Policy Network** to process real-time Li
 * **DRL Motion Planning (PPO):** Trained using Proximal Policy Optimization to avoid local minima, handle deceptive geometries, and execute smooth reverse/turning maneuvers.
 * **Custom Python Simulator Node (`env_simulator`):** Simulates differential drive forward kinematics, vector-based sliding collision physics, 24-beam 360° LiDAR raycasting, and hard boundary constraints.
 * **Real-time ONNX Inference (`controller_node`):** Loads the neural network policy (`.onnx`) and executes high-speed control loops without PyTorch runtime dependencies.
-* **OccupancyGrid Generation:** Automatically rasterizes continuous circular obstacles into a 0.1m-resolution `nav_msgs/msg/OccupancyGrid` map for Nav2 integration.
+* **Custom Obstacles:** Created various kinds of obstacles like V shaped, obstacles with gap between and normal cylindrical obstacles.
 * **RViz 3D Visualization:** Full `TF2` coordinate transform broadcasting (`world` $\rightarrow$ `robot`), `MarkerArray` rendering for blue cylinder obstacles/red arena walls, and `LaserScan` visualization.
 
 ---
@@ -19,7 +19,6 @@ The system leverages an **ONNX-exported Policy Network** to process real-time Li
 ## Project Directory Structure
 
 ```text
-~/
 ├── PPO_Brain/                        # DRL Offline Training Pipeline
 │   ├── logs/                         # Training execution logs
 │   ├── ppo_local_planner_v1/         # Saved model checkpoints
