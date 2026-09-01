@@ -33,7 +33,7 @@ The system leverages an **ONNX-exported Policy Network** to process real-time Li
 │   ├── Train.py                      # Primary PPO training script (Stable-Baselines3)
 │   └── Trap_coord_generator.py       # Mathematical generator for V-trap and Gap-trap geometries
 │
-└── Navigator/                        # ROS 2 Workspace
+└── rl_project/                       # ROS 2 Workspace
     └── src/
         └── RL_local_planner/         # ROS 2 Package
             ├── launch/
@@ -41,7 +41,7 @@ The system leverages an **ONNX-exported Policy Network** to process real-time Li
             ├── RL_local_planner/
             │   ├── __init__.py
             │   ├── env_simulator.py  # Simulation, Raycasting & Physics Node
-            │   └── controller.py     # ONNX Inference & Velocity Controller Node
+            │   └── controller.py     # ONNX & Velocity Controller Node
             ├── Resource/
             │   ├──RL_Local_Planner
             ├── test/
