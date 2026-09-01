@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Environment Visualizer with Coordinates</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+        }
+        h2 { margin-bottom: 5px; }
+        p { color: #666; margin-bottom: 30px; text-align: center;}
+
+        .container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .room-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+        }
+        canvas {
+            background-color: #fcfcfc;
+            border: 2px solid #2c3e50;
+            border-radius: 4px;
+            width: 280px;
+            height: 400px;
+        }
+        .legend {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .coords-panel {
+            width: 280px;
+            max-height: 250px;
+            overflow-y: auto;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            padding: 12px;
+            border-radius: 6px;
+            box-sizing: border-box;
+            text-align: left;
+            border: 1px solid #34495e;
+        }
+        .coords-panel h4 {
+            margin: 0 0 10px 0;
+            color: #f1c40f;
+            border-bottom: 1px solid #34495e;
+            padding-bottom: 5px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .trap-block {
+            margin-bottom: 12px;
+        }
+        .trap-title {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Trap Coordinates Visualizer</h2>
+    <p>
+        <strong>V-Traps Room (Top Half):</strong> (7,10) → (14,10) → (14,20) → (7,20)<br>
+        <strong>Gap Traps Room (Bottom Half):</strong> (7,0) → (14,0) → (14,10) → (7,10)
+    </p>
+
+    <div class="container">
+        <div class="room-wrapper">
+            <h3>V-Traps</h3>
+            <canvas id="room1" width="280" height="400"></canvas>
+            <div class="legend"><span class="dot"></span> V-Trap Obstacle (0.20m Ø)</div>
+
+            <div class="coords-panel" id="v-trap-coords">
+                <h4>V-Trap Data Loading...</h4>
+            </div>
+        </div>
+
+        <div class="room-wrapper">
+            <h3>Gap Traps</h3>
+            <canvas id="room2" width="280" height="400"></canvas>
+            <div class="legend"><span class="dot"></span> Gap-Trap Obstacle (0.25m Ø)</div>
+            
+            <div class="coords-panel" id="gap-trap-coords">
+                <h4>Gap-Trap Data Loading...</h4>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCALE = 40;
+        const V_TRAP_RADIUS_M = 0.25;
+        const GAP_TRAP_RADIUS_M = 0.25;
+
+        // Separate room definitions for the two halves
+        const ROOM_V = {
+            minX: 7, minY: 10, maxX: 14, maxY: 20,
+            corners: [[7, 10], [14, 10], [14, 20], [7, 20]]
+        };
+
+        const ROOM_GAP = {
+            minX: 7, minY: 0, maxX: 14, maxY: 10,
+            corners: [[7, 0], [14, 0], [14, 10], [7, 10]]
+        };
+
+        function worldToCanvas(x, y, roomCtx) {
+            return {
+                x: (x - roomCtx.minX) * SCALE,
+                y: (y - roomCtx.minY) * SCALE
+            };
+        }
+
+        function drawRoomBoundary(canvasId, roomCtx) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const corners = roomCtx.corners.map(([x, y]) => worldToCanvas(x, y, roomCtx));
+
+            ctx.beginPath();
+            ctx.moveTo(corners[0].x, corners[0].y);
+            for (let i = 1; i < corners.length; i++) {
+                ctx.lineTo(corners[i].x, corners[i].y);
+            }
+            ctx.closePath();
+
+            ctx.fillStyle = 'rgba(44, 62, 80, 0.03)';
+            ctx.fill();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#34495e';
+            ctx.font = '12px Segoe UI, sans-serif';
+            corners.forEach((pt, i) => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 3, 0, 2 * Math.PI);
+                ctx.fillStyle = '#3498db';
+                ctx.fill();
+
+                // Dynamic Labels based on the current Room Context
+                const labels = roomCtx.corners.map(c => `(${c[0]},${c[1]})`);
+                // Offsets adjusted slightly to stay safely inside bounds
+                const offsets = [
+                    { dx: 10, dy: 15 },    // Top-Left
+                    { dx: -55, dy: 15 },   // Top-Right
+                    { dx: -55, dy: -10 },  // Bottom-Right
+                    { dx: 10, dy: -10 }    // Bottom-Left
+                ];
+                ctx.fillStyle = '#34495e';
+                ctx.fillText(labels[i], pt.x + offsets[i].dx, pt.y + offsets[i].dy);
+            });
+        }
+
+        // --- GENERATORS ---
+        function generateVTrapsJS() {
+            const traps = [];
+            const xCoords = [0.8, 3.5, 5.8].map(x => ROOM_V.minX + x);
+            const yCoords = [2.0, 7.0, 11.5].map(y => ROOM_V.minY + (y / 14) * (ROOM_V.maxY - ROOM_V.minY));
+            // const yCoords = [2.0, 7.0, 11.5].map(y => ROOM_V.minY + (y / 14) * (ROOM_V.maxY - ROOM_V.minY));
+
+            yCoords.forEach(y => {
+                xCoords.forEach(x => {
+                    const alpha = Math.random() * 2 * Math.PI;
+                    const angleRad = 40 * (Math.PI / 180);
+                    const distStep = 0.50;
+
+                    const p0 = [x, y];
+                    const p1 = [x + distStep * Math.cos(alpha + angleRad), y + distStep * Math.sin(alpha + angleRad)];
+                    const p2 = [x + 2 * distStep * Math.cos(alpha + angleRad), y + 2 * distStep * Math.sin(alpha + angleRad)];
+                    const p3 = [x + distStep * Math.cos(alpha - angleRad), y + distStep * Math.sin(alpha - angleRad)];
+                    const p4 = [x + 2 * distStep * Math.cos(alpha - angleRad), y + 2 * distStep * Math.sin(alpha - angleRad)];
+
+                    traps.push([p0, p1, p2, p3, p4]);
+                });
+            });
+            return traps;
+        }
+
+        function generateGapTrapsJS() {
+            const traps = [];
+            const distCC = 0.77;
+            const xCoords = [1.0, 3.5, 6.0].map(x => ROOM_GAP.minX + x);
+            // Scaled properly for the 0 to 10 Y-axis
+            const yCoords = [1.5, 4.5, 7.3, 10.0, 12.5].map(y => ROOM_GAP.minY + (y / 14) * (ROOM_GAP.maxY - ROOM_GAP.minY));
+
+            yCoords.forEach(y => {
+                xCoords.forEach(x => {
+                    const beta = Math.random() * 2 * Math.PI;
+                    const p1 = [x - (distCC / 2) * Math.cos(beta), y - (distCC / 2) * Math.sin(beta)];
+                    const p2 = [x + (distCC / 2) * Math.cos(beta), y + (distCC / 2) * Math.sin(beta)];
+                    traps.push([p1, p2]);
+                });
+            });
+            return traps;
+        }
+
+        const vTraps = generateVTrapsJS();
+        const gapTraps = generateGapTrapsJS();
+
+        // --- DRAWING LOGIC ---
+        function drawTraps(canvasId, traps, radiusM, roomCtx) {
+            drawRoomBoundary(canvasId, roomCtx);
+
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            traps.forEach(trapNodes => {
+                trapNodes.forEach(node => {
+                    const pt = worldToCanvas(node[0], node[1], roomCtx);
+
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, radiusM * SCALE, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.fill();
+                    ctx.strokeStyle = '#c0392b';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                });
+            });
+        }
+
+        // --- TEXT VISUALIZATION LOGIC ---
+        function displayVTrapCoordinates(traps) {
+            const panel = document.getElementById('v-trap-coords');
+            let htmlContent = '<h4>V-Trap Coordinates (m)</h4>';
+            htmlContent += '<div class="trap-block"><div class="trap-title">Room corners:</div>';
+            htmlContent += 'P0: [7.000, 10.000]<br>';
+            htmlContent += 'P1: [14.000, 10.000]<br>';
+            htmlContent += 'P2: [14.000, 20.000]<br>';
+            htmlContent += 'P3: [7.000, 20.000]<br></div>';
+
+            traps.forEach((trap, tIdx) => {
+                htmlContent += `<div class="trap-block">`;
+                htmlContent += `<div class="trap-title">Trap ${tIdx + 1}:</div>`;
+                trap.forEach((node, nIdx) => {
+                    htmlContent += `  P${nIdx}: [${node[0].toFixed(3)}, ${node[1].toFixed(3)}]<br>`;
+                });
+                htmlContent += `</div>`;
+            });
+
+            panel.innerHTML = htmlContent;
+        }
+
+        function displayGapTrapCoordinates(traps) {
+            const panel = document.getElementById('gap-trap-coords');
+            let htmlContent = '<h4>Gap-Trap Coordinates (m)</h4>';
+            htmlContent += '<div class="trap-block"><div class="trap-title">Room corners:</div>';
+            htmlContent += 'P0: [7.000, 0.000]<br>';
+            htmlContent += 'P1: [14.000, 0.000]<br>';
+            htmlContent += 'P2: [14.000, 10.000]<br>';
+            htmlContent += 'P3: [7.000, 10.000]<br></div>';
+
+            traps.forEach((trap, tIdx) => {
+                const p1 = trap[0];
+                const p2 = trap[1];
+                
+                // Calculate the common center between the two obstacles
+                const cx = (p1[0] + p2[0]) / 2;
+                const cy = (p1[1] + p2[1]) / 2;
+
+                htmlContent += `<div class="trap-block">`;
+                htmlContent += `<div class="trap-title">Trap ${tIdx + 1}:</div>`;
+                htmlContent += `  Center: [${cx.toFixed(3)}, ${cy.toFixed(3)}]<br>`;
+                htmlContent += `  P0: [${p1[0].toFixed(3)}, ${p1[1].toFixed(3)}]<br>`;
+                htmlContent += `  P1: [${p2[0].toFixed(3)}, ${p2[1].toFixed(3)}]<br>`;
+                htmlContent += `</div>`;
+            });
+
+            panel.innerHTML = htmlContent;
+        }
+
+        // Run functions immediately on load with correct room boundaries
+        drawTraps('room1', vTraps, V_TRAP_RADIUS_M, ROOM_V);
+        drawTraps('room2', gapTraps, GAP_TRAP_RADIUS_M, ROOM_GAP);
+        
+        displayVTrapCoordinates(vTraps);
+        displayGapTrapCoordinates(gapTraps);
+    </script>
+</body>
+</html>
