@@ -50,7 +50,7 @@ class LocalPlanner(Node):
             [[12.700, 18.857], [13.195, 18.784], [13.689, 18.712], [12.714, 18.357], [12.728, 17.858]],
         ]
 
-        self.random_obs = np.random.uniform(low=[0.5, 0.5], high=[6.5, 19.5], size=(10, 2))
+        self.random_obs = np.random.uniform(low=[0.5, 0.5], high=[6.5, 19.5], size=(60, 2))
 
         self.scan_publisher = self.create_publisher(LaserScan, '/scan', 10)
         self.odom_publisher = self.create_publisher(Odometry, '/odom', 10)
@@ -99,14 +99,6 @@ class LocalPlanner(Node):
         msg1.child_frame_id = "robot"
 
         # kinematics equations for differential drive robot
-        # self.robot_pose[0] += self.linear_vel * np.cos(self.robot_pose[2]) * self.dt
-        # self.robot_pose[1] += self.linear_vel * np.sin(self.robot_pose[2]) * self.dt
-        # self.robot_pose[2] += self.angular_vel * self.dt
-        # self.robot_pose[2] = (self.robot_pose[2] + np.pi) % (2 * np.pi) - np.pi
-
-        # msg1.pose.pose.position.x = self.robot_pose[0]
-        # msg1.pose.pose.position.y = self.robot_pose[1]
-
         self.robot_pose[0] += self.linear_vel * np.cos(self.robot_pose[2]) * self.dt
         self.robot_pose[1] += self.linear_vel * np.sin(self.robot_pose[2]) * self.dt
         self.robot_pose[2] += self.angular_vel * self.dt
@@ -129,8 +121,6 @@ class LocalPlanner(Node):
         msg1.pose.pose.position.y = self.robot_pose[1]
         msg1.pose.pose.orientation = self.get_quaternion_from_euler(0, 0, self.robot_pose[2])
 
-        # =========================================================
-
         # ================ Lidar data =============================
 
         """
@@ -143,6 +133,16 @@ class LocalPlanner(Node):
 
         num_lidar_beams = 24
         lidar_range = 5.0
+
+        # LiDAR Metadata Configuration for RViz
+        msg2.angle_min = 0.0
+        msg2.angle_max = 2.0 * math.pi
+        msg2.angle_increment = (2.0 * math.pi) / num_lidar_beams
+        msg2.time_increment = 0.0
+        msg2.scan_time = 0.1
+        msg2.range_min = 0.1
+        msg2.range_max = lidar_range
+
         # initialize lidar_scans with 1s
         lidar_scans = np.full(num_lidar_beams, 1.0, dtype=np.float32)
         _, _, theta = self.robot_pose
