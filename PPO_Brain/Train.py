@@ -16,22 +16,21 @@ def main():
     # Prevent re-registration errors if running multiple times
     try:
         register(
-            id='Robot-Nav2-Env',
-            # entry_point='robot_env_new:RobotEscapeEnv'
+            id='Robot-planner-Env',
             entry_point='robot_env:RobotEscapeEnv'
         )
     except Exception:
         pass
 
-    raw_env = gym.make('Robot-Nav2-Env')
+    raw_env = gym.make('Robot-planner-Env')
 
     check_env(raw_env)
-    print("Environment check passed! No errors found.")
+    print("No errors found.")
 
     env = Monitor(raw_env, log_dir)
     env = DummyVecEnv([lambda: env])
     
-    # ADDED: Wrap the environment to normalize observations and rewards
+    # Wrap the environment to normalize observations and rewards
     # This will directly target the massive value_loss and 0 explained_variance
     env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.0)
 
@@ -55,9 +54,8 @@ def main():
     model_path = "ppo_local_planner_v1"
     model.save(model_path)
     print(f"Model saved successfully as {model_path}.zip")
-    
-    # ADDED: You MUST save the normalization stats!
-    # Without this, your model will fail completely during testing/inference 
+
+    # Without this, model will fail completely during testing 
     # because it won't know how to scale the real-world observations.
     stats_path = os.path.join(log_dir, "vec_normalize.pkl")
     env.save(stats_path)
