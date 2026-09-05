@@ -18,7 +18,7 @@ def main():
         register(
             id='Robot-Nav2-Env',
             # entry_point='robot_env_new:RobotEscapeEnv'
-            entry_point='robot_env_new:RobotEscapeEnv'
+            entry_point='robot_env:RobotEscapeEnv'
         )
     except Exception:
         pass
