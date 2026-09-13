@@ -52,3 +52,15 @@ The system leverages an **ONNX-exported Policy Network** to process real-time Li
             ├── setup.cfg
             └── setup.py              # Console script entry points setup
 ├── .gitignore
+
+---
+
+## 🎥 Demo Video
+
+Watch the complete demonstration of the **ROS 2 Deep Reinforcement Learning Local Planner** on YouTube:
+
+[![Demo Video](https://img.youtube.com/vi/ELjiVeb6hOk/maxresdefault.jpg)](https://youtu.be/ELjiVeb6hOk)
+
+▶️ **[Watch the Demo on YouTube](https://youtu.be/ELjiVeb6hOk)**
+
+The demo shows the trained PPO policy performing local navigation in the simulated environment, including obstacle avoidance and handling deceptive **V-trap** and **gap-trap** configurations.
